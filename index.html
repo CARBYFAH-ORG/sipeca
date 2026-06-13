@@ -110,8 +110,8 @@
     <h2 class="panel-title">Registrar pedido</h2>
     <label for="f-nombre">Nombre del estudiante</label>
     <input id="f-nombre" autocomplete="off" placeholder="Ej. Cadete A. Murillo">
-    <label for="f-tel">Teléfono (opcional)</label>
-    <input id="f-tel" inputmode="numeric" autocomplete="off" placeholder="Ej. 9876 5432">
+    <label for="f-tel">Teléfono (opcional · 8 dígitos)</label>
+    <input id="f-tel" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="Ej. 97755689">
     <label>Menú — elige cantidades</label>
     <div class="menu" id="menu"><div class="empty">Cargando menú…</div></div>
     <div class="total-bar"><span>Total</span><span id="total">L 0.00</span></div>
@@ -250,6 +250,7 @@ document.getElementById("btnCrear").addEventListener("click", async ()=>{
   const telefono=document.getElementById("f-tel").value.replace(/\D/g,"");
   const items=Object.keys(cant).map(plato=>({plato,cant:cant[plato]}));
   if(!nombre){ toast("Escribe el nombre del estudiante.",true); return; }
+  if(telefono && telefono.length!==8){ toast("El teléfono debe tener 8 dígitos (ej. 97755689).",true); return; }
   if(!items.length){ toast("Selecciona al menos un plato.",true); return; }
 
   const btn=document.getElementById("btnCrear");
@@ -320,6 +321,9 @@ function arrancarPolling(){detenerPolling();timer=setInterval(refrescar,8000);}
 function detenerPolling(){if(timer){clearInterval(timer);timer=null;}}
 
 /* ── Init ── */
+document.getElementById("f-tel").addEventListener("input", function(){
+  this.value = this.value.replace(/\D/g,"").slice(0,8); // solo dígitos, máximo 8
+});
 if(!API_URL) document.getElementById("cfgWarn").style.display="block";
 cargarMenu();
 </script>
