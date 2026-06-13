@@ -182,11 +182,15 @@ document.querySelectorAll(".tab").forEach(t=>{
   });
 });
 
-/* ── Reloj DTG ── */
+/* ── Reloj legible ── */
 function pad(n){return String(n).padStart(2,"0");}
-function dtgAhora(){const d=new Date();const m=["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];return pad(d.getDate())+pad(d.getHours())+pad(d.getMinutes())+"S "+m[d.getMonth()]+" "+String(d.getFullYear()).slice(-2);}
-setInterval(()=>{document.getElementById("clock").textContent=dtgAhora();},1000);
-document.getElementById("clock").textContent=dtgAhora();
+function relojAhora(){
+  const d=new Date();
+  let h=d.getHours(); const ampm=h<12?"a.m.":"p.m."; h=h%12||12;
+  return pad(d.getDate())+"/"+pad(d.getMonth()+1)+"/"+d.getFullYear()+" "+h+":"+pad(d.getMinutes())+" "+ampm;
+}
+setInterval(()=>{document.getElementById("clock").textContent=relojAhora();},1000);
+document.getElementById("clock").textContent=relojAhora();
 
 function toast(msg,err=false){const t=document.getElementById("toast");t.textContent=msg;t.classList.toggle("err",err);t.classList.add("show");clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("show"),3200);}
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
@@ -199,6 +203,12 @@ function parseDTG(s){
   const meses={JAN:0,FEB:1,MAR:2,APR:3,MAY:4,JUN:5,JUL:6,AUG:7,SEP:8,OCT:9,NOV:10,DEC:11};
   const mo=meses[m[4]]; if(mo==null) return null;
   return new Date(2000+(+m[5]), mo, +m[1], +m[2], +m[3], 0);
+}
+function fechaLegible(s){
+  const d=parseDTG(s);
+  if(!d) return s||"";
+  let h=d.getHours(); const ampm=h<12?"a.m.":"p.m."; h=h%12||12;
+  return pad(d.getDate())+"/"+pad(d.getMonth()+1)+"/"+d.getFullYear()+" "+h+":"+pad(d.getMinutes())+" "+ampm;
 }
 function recientes(pedidos){
   const ahora=Date.now(), limite=HORAS_LIMITE*3600*1000;
@@ -260,7 +270,7 @@ document.getElementById("btnCrear").addEventListener("click", async ()=>{
     if(!res.ok) throw new Error(res.error||"Error al registrar");
     miPedidoId=res.id;
     document.getElementById("r-id").textContent=res.id;
-    document.getElementById("r-meta").textContent=res.pedido+"  ·  "+L(res.total)+"  ·  "+res.dtg;
+    document.getElementById("r-meta").textContent=res.pedido+"  ·  "+L(res.total)+"  ·  "+fechaLegible(res.dtg);
     document.getElementById("r-estado").innerHTML='<span class="badge PENDIENTE"><span class="dot"></span>PENDIENTE</span>';
     document.getElementById("receipt").classList.add("show");
     renderMenu();
@@ -294,7 +304,7 @@ function tarjeta(p,seq,acciones){
       <div class="id">${p.id} · ${L(p.total)}</div>
       <div class="order">${esc(p.pedido)}</div>
       <div class="who">${esc(p.nombre)}${p.telefono?" · "+esc(p.telefono):""}</div>
-      <div class="dtg">RX ${p.dtg}${p.dtgListo?"  ·  LISTO "+p.dtgListo:""}</div>
+      <div class="dtg">Recibido ${fechaLegible(p.dtg)}${p.dtgListo?"  ·  Listo "+fechaLegible(p.dtgListo):""}</div>
     </div>
     <div class="actions"><span class="badge ${p.estado}">${dot}${p.estado}</span>${acciones}</div>
   </div>`;
