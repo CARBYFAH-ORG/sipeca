@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIPECA · Cafetería UDH</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --field:#0E120B;--panel:#161C10;--panel-2:#1E2616;--line:#38421f;
+    --sand:#D8CDA6;--sand-dim:#8d8b6f;--amber:#E0A100;--green:#6BC04A;
+    --gray:#6B6F63;--alert:#B23A2E;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{background:var(--field);color:var(--sand);font-family:'JetBrains Mono',ui-monospace,monospace;min-height:100vh;
+    background-image:repeating-linear-gradient(0deg,transparent 0 3px,rgba(0,0,0,.18) 3px 4px);}
+  header{border-bottom:2px solid var(--line);background:linear-gradient(180deg,#1a210f,#10140b);padding:14px 18px 0;position:sticky;top:0;z-index:10;}
+  .brand{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+  .brand h1{font-family:'Oswald',sans-serif;font-weight:700;letter-spacing:.18em;font-size:1.5rem;color:var(--sand);}
+  .brand .sub{font-size:.7rem;color:var(--sand-dim);letter-spacing:.22em;text-transform:uppercase}
+  .clock{margin-left:auto;font-size:.8rem;color:var(--amber);letter-spacing:.08em;white-space:nowrap}
+  .tabs{display:flex;gap:2px;margin-top:12px}
+  .tab{flex:1;background:none;border:none;border-top:3px solid transparent;color:var(--sand-dim);font-family:'Oswald',sans-serif;font-weight:600;letter-spacing:.16em;text-transform:uppercase;font-size:.82rem;padding:12px 6px;cursor:pointer;transition:.15s;}
+  .tab:hover{color:var(--sand)}
+  .tab.active{color:var(--field);background:var(--sand);border-top-color:var(--amber)}
+  main{max-width:760px;margin:0 auto;padding:20px 16px 80px}
+  .view{display:none}
+  .view.active{display:block;animation:fade .25s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  .eyebrow{font-family:'Oswald',sans-serif;letter-spacing:.2em;text-transform:uppercase;color:var(--amber);font-size:.72rem;margin-bottom:4px;}
+  .panel-title{font-family:'Oswald',sans-serif;font-weight:600;font-size:1.25rem;letter-spacing:.08em;margin-bottom:16px}
+  label{display:block;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--sand-dim);margin:14px 0 5px}
+  input{width:100%;background:var(--panel);border:1px solid var(--line);color:var(--sand);font-family:inherit;font-size:.95rem;padding:11px 12px;border-radius:2px;}
+  input:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 2px rgba(224,161,0,.18)}
+
+  /* ── Menú con precios ── */
+  .menu{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+  .mi{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:2px;padding:11px 13px;transition:.15s}
+  .mi.sel{border-color:var(--amber);background:rgba(224,161,0,.07)}
+  .mi-info{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}
+  .mi-name{color:var(--sand);font-size:.95rem}
+  .mi-price{color:var(--sand-dim);font-size:.78rem}
+  .stepper{display:flex;align-items:center;gap:0;border:1px solid var(--line);border-radius:2px;overflow:hidden}
+  .step{width:34px;height:34px;background:var(--panel-2);border:none;color:var(--sand);font-size:1.1rem;cursor:pointer;transition:.12s}
+  .step:hover{background:var(--amber);color:var(--field)}
+  .qty{min-width:30px;text-align:center;font-weight:700}
+  .total-bar{display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:14px;border-top:1px dashed var(--line);font-family:'Oswald',sans-serif;letter-spacing:.1em;text-transform:uppercase}
+  .total-bar #total{color:var(--amber);font-size:1.4rem;font-weight:700}
+
+  button.cta{width:100%;margin-top:18px;background:var(--amber);color:#1a1400;border:none;font-family:'Oswald',sans-serif;font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:.95rem;padding:14px;border-radius:2px;cursor:pointer;transition:.15s;}
+  button.cta:hover{filter:brightness(1.08)}
+  button.cta:disabled{opacity:.5;cursor:not-allowed}
+  .receipt{margin-top:22px;border:1px dashed var(--line);background:var(--panel);padding:18px;border-radius:3px;display:none}
+  .receipt.show{display:block}
+  .receipt .ticket{font-size:2rem;font-weight:700;color:var(--amber);letter-spacing:.05em}
+  .receipt .meta{font-size:.78rem;color:var(--sand-dim);margin-top:4px}
+
+  .log{display:flex;flex-direction:column;gap:10px}
+  .card{background:var(--panel-2);border:1px solid var(--line);border-left:4px solid var(--gray);border-radius:2px;padding:13px 14px;display:flex;gap:12px;align-items:flex-start;}
+  .card[data-estado="PENDIENTE"]{border-left-color:var(--amber)}
+  .card[data-estado="LISTA"]{border-left-color:var(--green)}
+  .card[data-estado="ENTREGADO"]{border-left-color:var(--gray);opacity:.55}
+  .card .seq{font-size:.7rem;color:var(--sand-dim);min-width:26px;padding-top:2px}
+  .card .body{flex:1;min-width:0}
+  .card .id{font-weight:700;letter-spacing:.04em}
+  .card .order{color:var(--sand);font-size:.95rem;margin:3px 0;word-break:break-word}
+  .card .who{font-size:.78rem;color:var(--sand-dim)}
+  .card .dtg{font-size:.72rem;color:var(--sand-dim);margin-top:3px}
+  .card .actions{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+  .badge{font-family:'Oswald',sans-serif;font-size:.66rem;letter-spacing:.12em;padding:3px 8px;border-radius:2px;text-transform:uppercase;white-space:nowrap;}
+  .badge.PENDIENTE{background:rgba(224,161,0,.16);color:var(--amber);border:1px solid var(--amber)}
+  .badge.LISTA{background:rgba(107,192,74,.16);color:var(--green);border:1px solid var(--green)}
+  .badge.ENTREGADO{background:rgba(107,111,99,.18);color:var(--sand-dim);border:1px solid var(--gray)}
+  .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--amber);margin-right:5px;animation:blink 1.2s infinite}
+  @keyframes blink{50%{opacity:.25}}
+  .btn{font-family:'Oswald',sans-serif;font-weight:600;letter-spacing:.08em;text-transform:uppercase;font-size:.72rem;padding:8px 11px;border-radius:2px;cursor:pointer;border:1px solid;background:none;transition:.15s;white-space:nowrap;}
+  .btn-ready{border-color:var(--green);color:var(--green)} .btn-ready:hover{background:var(--green);color:var(--field)}
+  .btn-wa{border-color:#25D366;color:#25D366} .btn-wa:hover{background:#25D366;color:var(--field)}
+  .btn-done{border-color:var(--sand-dim);color:var(--sand-dim)} .btn-done:hover{background:var(--sand-dim);color:var(--field)}
+  .empty{color:var(--sand-dim);font-size:.85rem;text-align:center;padding:40px 10px;border:1px dashed var(--line);border-radius:3px}
+  .bar{display:flex;align-items:center;gap:10px;margin-bottom:14px;font-size:.74rem;color:var(--sand-dim)}
+  .bar .live{color:var(--green)}
+  .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%) translateY(80px);background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--amber);color:var(--sand);padding:12px 16px;border-radius:3px;font-size:.85rem;transition:.3s;z-index:50;max-width:90vw;}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+  .toast.err{border-left-color:var(--alert)}
+  .config-warn{background:rgba(178,58,46,.12);border:1px solid var(--alert);color:#e6b0a8;font-size:.78rem;padding:10px 12px;border-radius:3px;margin-bottom:16px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <h1>SIPECA</h1>
+    <span class="sub">Sistema de Pedidos de Cafetería · UDH</span>
+    <span class="clock" id="clock">––––––</span>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-view="registro">Registro</button>
+    <button class="tab" data-view="cocina">Cocina</button>
+    <button class="tab" data-view="entrega">Entrega</button>
+  </div>
+</header>
+
+<main>
+  <div id="cfgWarn" class="config-warn" style="display:none">
+    ⚠ API no configurada. Abre <b>index.html</b> y pega tu URL <b>/exec</b> en <code>const API_URL</code>.
+  </div>
+
+  <!-- PANTALLA 1 · REGISTRO -->
+  <section class="view active" id="registro">
+    <div class="eyebrow">Estudiante</div>
+    <h2 class="panel-title">Registrar pedido</h2>
+    <label for="f-nombre">Nombre del estudiante</label>
+    <input id="f-nombre" autocomplete="off" placeholder="Ej. Cadete A. Murillo">
+    <label for="f-tel">Teléfono (WhatsApp, 8 dígitos)</label>
+    <input id="f-tel" inputmode="numeric" autocomplete="off" placeholder="Ej. 9876 5432">
+    <label>Menú — elige cantidades</label>
+    <div class="menu" id="menu"><div class="empty">Cargando menú…</div></div>
+    <div class="total-bar"><span>Total</span><span id="total">L 0.00</span></div>
+    <button class="cta" id="btnCrear">Enviar a cocina</button>
+
+    <div class="receipt" id="receipt">
+      <div class="eyebrow">Tu número de pedido</div>
+      <div class="ticket" id="r-id">—</div>
+      <div class="meta" id="r-meta"></div>
+      <div class="meta" id="r-estado" style="margin-top:8px"></div>
+    </div>
+  </section>
+
+  <!-- PANTALLA 2 · COCINA -->
+  <section class="view" id="cocina">
+    <div class="eyebrow">Cocinero</div>
+    <h2 class="panel-title">Cola de preparación</h2>
+    <div class="bar"><span class="live">● EN VIVO</span><span>orden de llegada · actualiza cada 8 s</span></div>
+    <div class="log" id="colaCocina"><div class="empty">Cargando…</div></div>
+  </section>
+
+  <!-- PANTALLA 3 · ENTREGA -->
+  <section class="view" id="entrega">
+    <div class="eyebrow">Entrega</div>
+    <h2 class="panel-title">Listos para recoger</h2>
+    <div class="bar"><span class="live">● EN VIVO</span><span>notifica y confirma la entrega</span></div>
+    <div class="log" id="colaEntrega"><div class="empty">Cargando…</div></div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ════════════════════════════════════════════════════════════
+   CONFIGURACIÓN — pega aquí la URL /exec de tu Apps Script
+   ════════════════════════════════════════════════════════════ */
+const API_URL = "https://script.google.com/macros/s/AKfycbycmHlAqvdF6S4gIk0WeU5nNNq26LLXJDd6vGk940gslBhRgIIlRVNoU7h7VvugaqSg/exec";
+const COD_PAIS = "504";
+/* ════════════════════════════════════════════════════════════ */
+
+let MENU = [];          // [{plato, precio}]
+let cant = {};          // { "Baleada": 2, ... }
+let miPedidoId = null;
+let timer = null;
+
+async function api(params){
+  if(!API_URL){ throw new Error("API_URL vacía"); }
+  if(params.action === "list" || params.action === "menu"){
+    const url = API_URL + "?action=" + params.action + "&t=" + Date.now();
+    const r = await fetch(url, { method:"GET", redirect:"follow" });
+    return r.json();
+  }
+  const body = new URLSearchParams(params); // x-www-form-urlencoded → petición simple, sin CORS preflight
+  const r = await fetch(API_URL, { method:"POST", body, redirect:"follow" });
+  return r.json();
+}
+
+/* ── Pestañas ── */
+document.querySelectorAll(".tab").forEach(t=>{
+  t.addEventListener("click", ()=>{
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));
+    t.classList.add("active");
+    const v=t.dataset.view;
+    document.getElementById(v).classList.add("active");
+    if(v==="cocina"||v==="entrega"){ refrescar(); arrancarPolling(); }
+    else { detenerPolling(); if(!MENU.length) cargarMenu(); }
+  });
+});
+
+/* ── Reloj DTG ── */
+function pad(n){return String(n).padStart(2,"0");}
+function dtgAhora(){const d=new Date();const m=["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];return pad(d.getDate())+pad(d.getHours())+pad(d.getMinutes())+"S "+m[d.getMonth()]+" "+String(d.getFullYear()).slice(-2);}
+setInterval(()=>{document.getElementById("clock").textContent=dtgAhora();},1000);
+document.getElementById("clock").textContent=dtgAhora();
+
+function toast(msg,err=false){const t=document.getElementById("toast");t.textContent=msg;t.classList.toggle("err",err);t.classList.add("show");clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("show"),3200);}
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function L(n){return "L "+Number(n||0).toFixed(2);}
+
+/* ── MENÚ ── */
+async function cargarMenu(){
+  const cont=document.getElementById("menu");
+  if(!API_URL){ cont.innerHTML='<div class="empty">Configura API_URL para ver el menú.</div>'; return; }
+  try{
+    const res=await api({action:"menu"});
+    MENU=res.menu||[];
+    renderMenu();
+  }catch(e){ cont.innerHTML='<div class="empty">No se pudo cargar el menú.</div>'; }
+}
+function renderMenu(){
+  const cont=document.getElementById("menu");
+  if(!MENU.length){ cont.innerHTML='<div class="empty">El menú está vacío. Agrega platos en la pestaña "Menu" de tu hoja.</div>'; return; }
+  cont.innerHTML=MENU.map((m,i)=>`
+    <div class="mi" id="mi-${i}">
+      <div class="mi-info"><span class="mi-name">${esc(m.plato)}</span><span class="mi-price">${L(m.precio)}</span></div>
+      <div class="stepper">
+        <button class="step" data-i="${i}" data-d="-1">−</button>
+        <span class="qty" id="q-${i}">0</span>
+        <button class="step" data-i="${i}" data-d="1">+</button>
+      </div>
+    </div>`).join("");
+  cont.querySelectorAll(".step").forEach(b=>b.addEventListener("click",()=>setCant(+b.dataset.i,+b.dataset.d)));
+  cant={}; pintarTotal();
+}
+function setCant(i,d){
+  const plato=MENU[i].plato;
+  const nuevo=Math.max(0,(cant[plato]||0)+d);
+  if(nuevo===0) delete cant[plato]; else cant[plato]=nuevo;
+  document.getElementById("q-"+i).textContent=nuevo;
+  document.getElementById("mi-"+i).classList.toggle("sel",nuevo>0);
+  pintarTotal();
+}
+function pintarTotal(){let t=0;MENU.forEach(m=>{t+=(cant[m.plato]||0)*Number(m.precio);});document.getElementById("total").textContent=L(t);}
+
+/* ── REGISTRO ── */
+document.getElementById("btnCrear").addEventListener("click", async ()=>{
+  const nombre=document.getElementById("f-nombre").value.trim();
+  const telefono=document.getElementById("f-tel").value.replace(/\D/g,"");
+  const items=Object.keys(cant).map(plato=>({plato,cant:cant[plato]}));
+  if(!nombre){ toast("Escribe el nombre del estudiante.",true); return; }
+  if(!items.length){ toast("Selecciona al menos un plato.",true); return; }
+
+  const btn=document.getElementById("btnCrear");
+  btn.disabled=true; btn.textContent="Enviando…";
+  try{
+    const res=await api({action:"crear",nombre,telefono,items:JSON.stringify(items)});
+    if(!res.ok) throw new Error(res.error||"Error al registrar");
+    miPedidoId=res.id;
+    document.getElementById("r-id").textContent=res.id;
+    document.getElementById("r-meta").textContent=res.pedido+"  ·  "+L(res.total)+"  ·  "+res.dtg;
+    document.getElementById("r-estado").innerHTML='<span class="badge PENDIENTE"><span class="dot"></span>PENDIENTE</span>';
+    document.getElementById("receipt").classList.add("show");
+    renderMenu(); // reinicia cantidades
+    toast("Pedido "+res.id+" enviado a cocina.");
+    vigilarMiPedido();
+  }catch(e){ toast(e.message,true); }
+  finally{ btn.disabled=false; btn.textContent="Enviar a cocina"; }
+});
+
+async function vigilarMiPedido(){
+  if(!miPedidoId) return;
+  try{
+    const res=await api({action:"list"});
+    const p=(res.pedidos||[]).find(x=>x.id===miPedidoId);
+    if(p){
+      const dot=p.estado==="PENDIENTE"?'<span class="dot"></span>':'';
+      document.getElementById("r-estado").innerHTML='<span class="badge '+p.estado+'">'+dot+p.estado+'</span>';
+      if(p.estado==="LISTA") toast("¡Tu pedido "+p.id+" está LISTO!");
+    }
+  }catch(e){}
+  if(document.getElementById("registro").classList.contains("active")) setTimeout(vigilarMiPedido,8000);
+}
+
+/* ── COCINA + ENTREGA ── */
+function tarjeta(p,seq,acciones){
+  const dot=p.estado==="PENDIENTE"?'<span class="dot"></span>':'';
+  return `<div class="card" data-estado="${p.estado}">
+    <div class="seq">${seq}</div>
+    <div class="body">
+      <div class="id">${p.id} · ${L(p.total)}</div>
+      <div class="order">${esc(p.pedido)}</div>
+      <div class="who">${esc(p.nombre)}${p.telefono?" · "+esc(p.telefono):""}</div>
+      <div class="dtg">RX ${p.dtg}${p.dtgListo?"  ·  LISTO "+p.dtgListo:""}</div>
+    </div>
+    <div class="actions"><span class="badge ${p.estado}">${dot}${p.estado}</span>${acciones}</div>
+  </div>`;
+}
+async function refrescar(){
+  if(!API_URL){ document.getElementById("cfgWarn").style.display="block"; return; }
+  let res;
+  try{ res=await api({action:"list"}); }
+  catch(e){ toast("No se pudo leer la cola: "+e.message,true); return; }
+  const pedidos=res.pedidos||[];
+  const pend=pedidos.filter(p=>p.estado==="PENDIENTE");
+  document.getElementById("colaCocina").innerHTML = pend.length
+    ? pend.map((p,i)=>tarjeta(p,i+1,`<button class="btn btn-ready" onclick="marcarListo('${p.id}')">Marcar lista</button>`)).join("")
+    : '<div class="empty">Sin pedidos pendientes. Cola despejada.</div>';
+  const listas=pedidos.filter(p=>p.estado==="LISTA");
+  document.getElementById("colaEntrega").innerHTML = listas.length
+    ? listas.map((p,i)=>tarjeta(p,i+1,`<button class="btn btn-wa" onclick="notificar('${p.id}')">WhatsApp</button><button class="btn btn-done" onclick="confirmarEntrega('${p.id}')">Entregado</button>`)).join("")
+    : '<div class="empty">Nada listo por entregar todavía.</div>';
+}
+window.marcarListo=async function(id){try{const res=await api({action:"listo",id});if(!res.ok)throw new Error(res.error);toast(id+" → LISTA. Avisando…");abrirWhatsApp(res);refrescar();}catch(e){toast(e.message,true);}};
+window.notificar=async function(id){try{const res=await api({action:"list"});const p=(res.pedidos||[]).find(x=>x.id===id);if(p)abrirWhatsApp(p);else toast("Pedido no encontrado",true);}catch(e){toast(e.message,true);}};
+window.confirmarEntrega=async function(id){try{const res=await api({action:"entregado",id});if(!res.ok)throw new Error(res.error);toast(id+" entregado. ✓");refrescar();}catch(e){toast(e.message,true);}};
+function abrirWhatsApp(p){
+  const tel=String(p.telefono||"").replace(/\D/g,"");
+  if(!tel){ toast("Este pedido no tiene teléfono.",true); return; }
+  const num=tel.length===8?COD_PAIS+tel:tel;
+  const msg=`Hola ${p.nombre}, tu pedido ${p.id} (${p.pedido}) ya esta LISTO. Total: ${L(p.total)}. Pasa a recogerlo en la cafeteria. ${p.dtg||""}`;
+  window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`,"_blank");
+}
+function arrancarPolling(){detenerPolling();timer=setInterval(refrescar,8000);}
+function detenerPolling(){if(timer){clearInterval(timer);timer=null;}}
+
+/* ── Init ── */
+if(!API_URL) document.getElementById("cfgWarn").style.display="block";
+cargarMenu();
+</script>
+</body>
+</html>
