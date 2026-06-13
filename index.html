@@ -35,6 +35,7 @@
   label{display:block;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--sand-dim);margin:14px 0 5px}
   input{width:100%;background:var(--panel);border:1px solid var(--line);color:var(--sand);font-family:inherit;font-size:.95rem;padding:11px 12px;border-radius:2px;}
   input:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 2px rgba(224,161,0,.18)}
+  input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.75);cursor:pointer}
   .menu{display:flex;flex-direction:column;gap:8px;margin-top:6px}
   .mi{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:2px;padding:11px 13px;transition:.15s}
   .mi.sel{border-color:var(--amber);background:rgba(224,161,0,.07)}
@@ -112,6 +113,10 @@
     <input id="f-nombre" autocomplete="off" placeholder="Ej. Cadete A. Murillo">
     <label for="f-tel">Teléfono (opcional · 8 dígitos)</label>
     <input id="f-tel" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="Ej. 97755689">
+    <label for="f-recoger">¿Qué día lo recoges?</label>
+    <input type="date" id="f-recoger">
+    <label for="f-hora">¿A qué hora?</label>
+    <input type="time" id="f-hora">
     <label>Menú — elige cantidades</label>
     <div class="menu" id="menu"><div class="empty">Cargando menú…</div></div>
     <div class="total-bar"><span>Total</span><span id="total">L 0.00</span></div>
@@ -129,7 +134,7 @@
   <section class="view" id="cocina">
     <div class="eyebrow">Cocinero</div>
     <h2 class="panel-title">Cola de preparación</h2>
-    <div class="bar"><span class="live">● EN VIVO</span><span>orden de llegada · últimas 6 h · actualiza cada 8 s</span></div>
+    <div class="bar"><span class="live">● EN VIVO</span><span>pedidos de hoy · orden de llegada · cada 8 s</span></div>
     <div class="log" id="colaCocina"><div class="empty">Cargando…</div></div>
   </section>
 
@@ -137,7 +142,7 @@
   <section class="view" id="entrega">
     <div class="eyebrow">Entrega</div>
     <h2 class="panel-title">Listos para recoger</h2>
-    <div class="bar"><span class="live">● EN VIVO</span><span>últimas 6 h · confirma la entrega</span></div>
+    <div class="bar"><span class="live">● EN VIVO</span><span>pedidos de hoy · confirma la entrega</span></div>
     <div class="log" id="colaEntrega"><div class="empty">Cargando…</div></div>
   </section>
 </main>
@@ -148,7 +153,7 @@
 /* ════════════════════════════════════════════════════════════
    CONFIGURACIÓN
    ════════════════════════════════════════════════════════════ */
-const API_URL = "https://script.google.com/macros/s/AKfycbycmHlAqvdF6S4gIk0WeU5nNNq26LLXJDd6vGk940gslBhRgIIlRVNoU7h7VvugaqSg/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxf0igz_T1GsgNRoQUKdIqO-CWGJXcq5IDUXZKTlMI6QOvXE1WfmSEq5xyg_h5GdbcO/exec";
 const HORAS_LIMITE = 6;   // solo se muestran pedidos de las últimas N horas
 /* ════════════════════════════════════════════════════════════ */
 
@@ -210,6 +215,10 @@ function fechaLegible(s){
   let h=d.getHours(); const ampm=h<12?"a.m.":"p.m."; h=h%12||12;
   return pad(d.getDate())+"/"+pad(d.getMonth()+1)+"/"+d.getFullYear()+" "+h+":"+pad(d.getMinutes())+" "+ampm;
 }
+function hoyISO(){const d=new Date();return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());}
+function fechaCorta(iso){const m=String(iso||"").match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?(m[3]+"/"+m[2]+"/"+m[1]):"";}
+function horaLegible(hhmm){const m=String(hhmm||"").match(/^(\d{1,2}):(\d{2})/);if(!m)return hhmm||"";let h=+m[1];const ampm=h<12?"a.m.":"p.m.";h=h%12||12;return h+":"+m[2]+" "+ampm;}
+function esDeHoy(p){ return !p.recoger || p.recoger===hoyISO(); } // sin fecha → se trata como hoy
 function recientes(pedidos){
   const ahora=Date.now(), limite=HORAS_LIMITE*3600*1000;
   return pedidos.filter(p=>{
@@ -258,19 +267,24 @@ function pintarTotal(){let t=0;MENU.forEach(m=>{t+=(cant[m.plato]||0)*Number(m.p
 document.getElementById("btnCrear").addEventListener("click", async ()=>{
   const nombre=document.getElementById("f-nombre").value.trim();
   const telefono=document.getElementById("f-tel").value.replace(/\D/g,"");
+  const recoger=document.getElementById("f-recoger").value; // "YYYY-MM-DD"
+  const hora=document.getElementById("f-hora").value;       // "HH:MM"
   const items=Object.keys(cant).map(plato=>({plato,cant:cant[plato]}));
   if(!nombre){ toast("Escribe el nombre del estudiante.",true); return; }
   if(telefono && telefono.length!==8){ toast("El teléfono debe tener 8 dígitos (ej. 97755689).",true); return; }
+  if(!recoger){ toast("Elige el día en que recoges el pedido.",true); return; }
+  if(recoger < hoyISO()){ toast("La fecha de recogida no puede ser en el pasado.",true); return; }
+  if(!hora){ toast("Elige la hora de recogida.",true); return; }
   if(!items.length){ toast("Selecciona al menos un plato.",true); return; }
 
   const btn=document.getElementById("btnCrear");
   btn.disabled=true; btn.textContent="Enviando…";
   try{
-    const res=await api({action:"crear",nombre,telefono,items:JSON.stringify(items)});
+    const res=await api({action:"crear",nombre,telefono,recoger,hora,items:JSON.stringify(items)});
     if(!res.ok) throw new Error(res.error||"Error al registrar");
     miPedidoId=res.id;
     document.getElementById("r-id").textContent=res.id;
-    document.getElementById("r-meta").textContent=res.pedido+"  ·  "+L(res.total)+"  ·  "+fechaLegible(res.dtg);
+    document.getElementById("r-meta").textContent=res.pedido+"  ·  "+L(res.total)+"  ·  Recoge "+(fechaCorta(res.recoger)||fechaCorta(recoger))+" "+horaLegible(res.hora||hora);
     document.getElementById("r-estado").innerHTML='<span class="badge PENDIENTE"><span class="dot"></span>PENDIENTE</span>';
     document.getElementById("receipt").classList.add("show");
     renderMenu();
@@ -303,7 +317,7 @@ function tarjeta(p,seq,acciones){
     <div class="body">
       <div class="id">${p.id} · ${L(p.total)}</div>
       <div class="order">${esc(p.pedido)}</div>
-      <div class="who">${esc(p.nombre)}${p.telefono?" · "+esc(p.telefono):""}</div>
+      <div class="who">${esc(p.nombre)}${p.telefono?" · "+esc(p.telefono):""}${p.recoger?'  ·  Recoge '+fechaCorta(p.recoger)+(p.hora?' '+horaLegible(p.hora):''):""}</div>
       <div class="dtg">Recibido ${fechaLegible(p.dtg)}${p.dtgListo?"  ·  Listo "+fechaLegible(p.dtgListo):""}</div>
     </div>
     <div class="actions"><span class="badge ${p.estado}">${dot}${p.estado}</span>${acciones}</div>
@@ -314,7 +328,7 @@ async function refrescar(){
   let res;
   try{ res=await api({action:"list"}); }
   catch(e){ toast("No se pudo leer la cola: "+e.message,true); return; }
-  const pedidos=recientes(res.pedidos||[]); // solo últimas 6 h
+  const pedidos=(res.pedidos||[]).filter(esDeHoy); // solo los que se recogen hoy
   const pend=pedidos.filter(p=>p.estado==="PENDIENTE");
   document.getElementById("colaCocina").innerHTML = pend.length
     ? pend.map((p,i)=>tarjeta(p,i+1,`<button class="btn btn-ready" onclick="marcarListo('${p.id}')">Marcar lista</button>`)).join("")
@@ -331,6 +345,8 @@ function arrancarPolling(){detenerPolling();timer=setInterval(refrescar,8000);}
 function detenerPolling(){if(timer){clearInterval(timer);timer=null;}}
 
 /* ── Init ── */
+const _fr=document.getElementById("f-recoger"); _fr.min=hoyISO(); _fr.value=hoyISO();
+document.getElementById("f-hora").value="09:00";
 document.getElementById("f-tel").addEventListener("input", function(){
   this.value = this.value.replace(/\D/g,"").slice(0,8); // solo dígitos, máximo 8
 });
