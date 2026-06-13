@@ -35,8 +35,6 @@
   label{display:block;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--sand-dim);margin:14px 0 5px}
   input{width:100%;background:var(--panel);border:1px solid var(--line);color:var(--sand);font-family:inherit;font-size:.95rem;padding:11px 12px;border-radius:2px;}
   input:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 2px rgba(224,161,0,.18)}
-
-  /* ── Menú con precios ── */
   .menu{display:flex;flex-direction:column;gap:8px;margin-top:6px}
   .mi{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:2px;padding:11px 13px;transition:.15s}
   .mi.sel{border-color:var(--amber);background:rgba(224,161,0,.07)}
@@ -49,7 +47,6 @@
   .qty{min-width:30px;text-align:center;font-weight:700}
   .total-bar{display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:14px;border-top:1px dashed var(--line);font-family:'Oswald',sans-serif;letter-spacing:.1em;text-transform:uppercase}
   .total-bar #total{color:var(--amber);font-size:1.4rem;font-weight:700}
-
   button.cta{width:100%;margin-top:18px;background:var(--amber);color:#1a1400;border:none;font-family:'Oswald',sans-serif;font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:.95rem;padding:14px;border-radius:2px;cursor:pointer;transition:.15s;}
   button.cta:hover{filter:brightness(1.08)}
   button.cta:disabled{opacity:.5;cursor:not-allowed}
@@ -57,7 +54,6 @@
   .receipt.show{display:block}
   .receipt .ticket{font-size:2rem;font-weight:700;color:var(--amber);letter-spacing:.05em}
   .receipt .meta{font-size:.78rem;color:var(--sand-dim);margin-top:4px}
-
   .log{display:flex;flex-direction:column;gap:10px}
   .card{background:var(--panel-2);border:1px solid var(--line);border-left:4px solid var(--gray);border-radius:2px;padding:13px 14px;display:flex;gap:12px;align-items:flex-start;}
   .card[data-estado="PENDIENTE"]{border-left-color:var(--amber)}
@@ -78,7 +74,6 @@
   @keyframes blink{50%{opacity:.25}}
   .btn{font-family:'Oswald',sans-serif;font-weight:600;letter-spacing:.08em;text-transform:uppercase;font-size:.72rem;padding:8px 11px;border-radius:2px;cursor:pointer;border:1px solid;background:none;transition:.15s;white-space:nowrap;}
   .btn-ready{border-color:var(--green);color:var(--green)} .btn-ready:hover{background:var(--green);color:var(--field)}
-  .btn-wa{border-color:#25D366;color:#25D366} .btn-wa:hover{background:#25D366;color:var(--field)}
   .btn-done{border-color:var(--sand-dim);color:var(--sand-dim)} .btn-done:hover{background:var(--sand-dim);color:var(--field)}
   .empty{color:var(--sand-dim);font-size:.85rem;text-align:center;padding:40px 10px;border:1px dashed var(--line);border-radius:3px}
   .bar{display:flex;align-items:center;gap:10px;margin-bottom:14px;font-size:.74rem;color:var(--sand-dim)}
@@ -115,7 +110,7 @@
     <h2 class="panel-title">Registrar pedido</h2>
     <label for="f-nombre">Nombre del estudiante</label>
     <input id="f-nombre" autocomplete="off" placeholder="Ej. Cadete A. Murillo">
-    <label for="f-tel">Teléfono (WhatsApp, 8 dígitos)</label>
+    <label for="f-tel">Teléfono (opcional)</label>
     <input id="f-tel" inputmode="numeric" autocomplete="off" placeholder="Ej. 9876 5432">
     <label>Menú — elige cantidades</label>
     <div class="menu" id="menu"><div class="empty">Cargando menú…</div></div>
@@ -134,7 +129,7 @@
   <section class="view" id="cocina">
     <div class="eyebrow">Cocinero</div>
     <h2 class="panel-title">Cola de preparación</h2>
-    <div class="bar"><span class="live">● EN VIVO</span><span>orden de llegada · actualiza cada 8 s</span></div>
+    <div class="bar"><span class="live">● EN VIVO</span><span>orden de llegada · últimas 6 h · actualiza cada 8 s</span></div>
     <div class="log" id="colaCocina"><div class="empty">Cargando…</div></div>
   </section>
 
@@ -142,7 +137,7 @@
   <section class="view" id="entrega">
     <div class="eyebrow">Entrega</div>
     <h2 class="panel-title">Listos para recoger</h2>
-    <div class="bar"><span class="live">● EN VIVO</span><span>notifica y confirma la entrega</span></div>
+    <div class="bar"><span class="live">● EN VIVO</span><span>últimas 6 h · confirma la entrega</span></div>
     <div class="log" id="colaEntrega"><div class="empty">Cargando…</div></div>
   </section>
 </main>
@@ -151,14 +146,14 @@
 
 <script>
 /* ════════════════════════════════════════════════════════════
-   CONFIGURACIÓN — pega aquí la URL /exec de tu Apps Script
+   CONFIGURACIÓN
    ════════════════════════════════════════════════════════════ */
 const API_URL = "https://script.google.com/macros/s/AKfycbycmHlAqvdF6S4gIk0WeU5nNNq26LLXJDd6vGk940gslBhRgIIlRVNoU7h7VvugaqSg/exec";
-const COD_PAIS = "504";
+const HORAS_LIMITE = 6;   // solo se muestran pedidos de las últimas N horas
 /* ════════════════════════════════════════════════════════════ */
 
-let MENU = [];          // [{plato, precio}]
-let cant = {};          // { "Baleada": 2, ... }
+let MENU = [];
+let cant = {};
 let miPedidoId = null;
 let timer = null;
 
@@ -196,6 +191,23 @@ document.getElementById("clock").textContent=dtgAhora();
 function toast(msg,err=false){const t=document.getElementById("toast");t.textContent=msg;t.classList.toggle("err",err);t.classList.add("show");clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("show"),3200);}
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 function L(n){return "L "+Number(n||0).toFixed(2);}
+
+/* ── Filtro de últimas 6 horas (lee el DTG de cada pedido) ── */
+function parseDTG(s){
+  const m=String(s||"").match(/^(\d{2})(\d{2})(\d{2})[A-Z]\s+([A-Z]{3})\s+(\d{2})$/);
+  if(!m) return null;
+  const meses={JAN:0,FEB:1,MAR:2,APR:3,MAY:4,JUN:5,JUL:6,AUG:7,SEP:8,OCT:9,NOV:10,DEC:11};
+  const mo=meses[m[4]]; if(mo==null) return null;
+  return new Date(2000+(+m[5]), mo, +m[1], +m[2], +m[3], 0);
+}
+function recientes(pedidos){
+  const ahora=Date.now(), limite=HORAS_LIMITE*3600*1000;
+  return pedidos.filter(p=>{
+    const d=parseDTG(p.dtg);
+    if(!d) return true; // si no se puede leer la fecha, no lo ocultamos
+    return (ahora - d.getTime()) <= limite;
+  });
+}
 
 /* ── MENÚ ── */
 async function cargarMenu(){
@@ -250,13 +262,14 @@ document.getElementById("btnCrear").addEventListener("click", async ()=>{
     document.getElementById("r-meta").textContent=res.pedido+"  ·  "+L(res.total)+"  ·  "+res.dtg;
     document.getElementById("r-estado").innerHTML='<span class="badge PENDIENTE"><span class="dot"></span>PENDIENTE</span>';
     document.getElementById("receipt").classList.add("show");
-    renderMenu(); // reinicia cantidades
+    renderMenu();
     toast("Pedido "+res.id+" enviado a cocina.");
     vigilarMiPedido();
   }catch(e){ toast(e.message,true); }
   finally{ btn.disabled=false; btn.textContent="Enviar a cocina"; }
 });
 
+/* El estudiante ve en su recibo cuando su pedido pasa a LISTA */
 async function vigilarMiPedido(){
   if(!miPedidoId) return;
   try{
@@ -265,7 +278,7 @@ async function vigilarMiPedido(){
     if(p){
       const dot=p.estado==="PENDIENTE"?'<span class="dot"></span>':'';
       document.getElementById("r-estado").innerHTML='<span class="badge '+p.estado+'">'+dot+p.estado+'</span>';
-      if(p.estado==="LISTA") toast("¡Tu pedido "+p.id+" está LISTO!");
+      if(p.estado==="LISTA") toast("¡Tu pedido "+p.id+" está LISTO! Pasa a recogerlo.");
     }
   }catch(e){}
   if(document.getElementById("registro").classList.contains("active")) setTimeout(vigilarMiPedido,8000);
@@ -290,26 +303,19 @@ async function refrescar(){
   let res;
   try{ res=await api({action:"list"}); }
   catch(e){ toast("No se pudo leer la cola: "+e.message,true); return; }
-  const pedidos=res.pedidos||[];
+  const pedidos=recientes(res.pedidos||[]); // solo últimas 6 h
   const pend=pedidos.filter(p=>p.estado==="PENDIENTE");
   document.getElementById("colaCocina").innerHTML = pend.length
     ? pend.map((p,i)=>tarjeta(p,i+1,`<button class="btn btn-ready" onclick="marcarListo('${p.id}')">Marcar lista</button>`)).join("")
     : '<div class="empty">Sin pedidos pendientes. Cola despejada.</div>';
   const listas=pedidos.filter(p=>p.estado==="LISTA");
   document.getElementById("colaEntrega").innerHTML = listas.length
-    ? listas.map((p,i)=>tarjeta(p,i+1,`<button class="btn btn-wa" onclick="notificar('${p.id}')">WhatsApp</button><button class="btn btn-done" onclick="confirmarEntrega('${p.id}')">Entregado</button>`)).join("")
+    ? listas.map((p,i)=>tarjeta(p,i+1,`<button class="btn btn-done" onclick="confirmarEntrega('${p.id}')">Entregado</button>`)).join("")
     : '<div class="empty">Nada listo por entregar todavía.</div>';
 }
-window.marcarListo=async function(id){try{const res=await api({action:"listo",id});if(!res.ok)throw new Error(res.error);toast(id+" → LISTA. Avisando…");abrirWhatsApp(res);refrescar();}catch(e){toast(e.message,true);}};
-window.notificar=async function(id){try{const res=await api({action:"list"});const p=(res.pedidos||[]).find(x=>x.id===id);if(p)abrirWhatsApp(p);else toast("Pedido no encontrado",true);}catch(e){toast(e.message,true);}};
+window.marcarListo=async function(id){try{const res=await api({action:"listo",id});if(!res.ok)throw new Error(res.error);toast(id+" → LISTA.");refrescar();}catch(e){toast(e.message,true);}};
 window.confirmarEntrega=async function(id){try{const res=await api({action:"entregado",id});if(!res.ok)throw new Error(res.error);toast(id+" entregado. ✓");refrescar();}catch(e){toast(e.message,true);}};
-function abrirWhatsApp(p){
-  const tel=String(p.telefono||"").replace(/\D/g,"");
-  if(!tel){ toast("Este pedido no tiene teléfono.",true); return; }
-  const num=tel.length===8?COD_PAIS+tel:tel;
-  const msg=`Hola ${p.nombre}, tu pedido ${p.id} (${p.pedido}) ya esta LISTO. Total: ${L(p.total)}. Pasa a recogerlo en la cafeteria. ${p.dtg||""}`;
-  window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`,"_blank");
-}
+
 function arrancarPolling(){detenerPolling();timer=setInterval(refrescar,8000);}
 function detenerPolling(){if(timer){clearInterval(timer);timer=null;}}
 
