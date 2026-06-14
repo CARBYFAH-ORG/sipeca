@@ -226,7 +226,10 @@ function fechaLegible(s){
 function hoyISO(){const d=new Date();return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());}
 function fechaCorta(iso){const m=String(iso||"").match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?(m[3]+"/"+m[2]+"/"+m[1]):"";}
 function horaLegible(hhmm){const m=String(hhmm||"").match(/^(\d{1,2}):(\d{2})/);if(!m)return hhmm||"";let h=+m[1];const ampm=h<12?"a.m.":"p.m.";h=h%12||12;return h+":"+m[2]+" "+ampm;}
-function esDeHoy(p){ return !p.recoger || p.recoger===hoyISO(); } // sin fecha → se trata como hoy
+/* Normalizan la fecha/hora vengan como "2026-06-13", "13/06/2026" o fecha completa de Sheets */
+function normFecha(s){if(!s)return"";let m=String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return m[1]+"-"+m[2]+"-"+m[3];m=String(s).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);if(m)return m[3]+"-"+pad(+m[2])+"-"+pad(+m[1]);const d=new Date(s);return isNaN(d)?String(s):d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());}
+function normHora(s){if(!s)return"";const m=String(s).match(/(\d{1,2}):(\d{2})/);if(m)return pad(+m[1])+":"+m[2];const d=new Date(s);return isNaN(d)?String(s):pad(d.getHours())+":"+pad(d.getMinutes());}
+function esDeHoy(p){ return !p.recoger || normFecha(p.recoger)===hoyISO(); } // sin fecha → se trata como hoy
 function recientes(pedidos){
   const ahora=Date.now(), limite=HORAS_LIMITE*3600*1000;
   return pedidos.filter(p=>{
@@ -325,7 +328,7 @@ function tarjeta(p,seq,acciones){
     <div class="body">
       <div class="id">${p.id} · ${L(p.total)}</div>
       <div class="order">${esc(p.pedido)}</div>
-      <div class="who">${esc(p.nombre)}${p.telefono?" · "+esc(p.telefono):""}${p.recoger?'  ·  Recoge '+fechaCorta(p.recoger)+(p.hora?' '+horaLegible(p.hora):''):""}</div>
+      <div class="who">${esc(p.nombre)}${p.telefono?" · "+esc(p.telefono):""}${p.recoger?'  ·  Recoge '+fechaCorta(normFecha(p.recoger))+(p.hora?' '+horaLegible(normHora(p.hora)):''):""}</div>
       <div class="dtg">Recibido ${fechaLegible(p.dtg)}${p.dtgListo?"  ·  Listo "+fechaLegible(p.dtgListo):""}</div>
     </div>
     <div class="actions"><span class="badge ${p.estado}">${dot}${p.estado}</span>${acciones}</div>
